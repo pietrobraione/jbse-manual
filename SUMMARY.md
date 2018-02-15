@@ -1,4 +1,4 @@
 # Summary
 
-* [The JBSE manual](README.md)
+* [About this book](README.md)
 
