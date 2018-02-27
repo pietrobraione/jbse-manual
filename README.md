@@ -1,4 +1,4 @@
-# About this book
+# The JBSE manual
 
 This manual teaches you how to install, use and modify JBSE, an open source framework for the analysis of Java programs.
 
