@@ -14,7 +14,7 @@ What is JBSE
 Who is the author of this book?
 ---------------------------------------
 
-The author of this book is the main maintainer of JBSE, Pietro Braione. You can contact me via email at *name*.*surname*@gmail.com.
+The author of this book is the main maintainer of JBSE, Pietro Braione. You can contact me via email at *name*.\ *surname*\ @gmail.com.
 
 Where do I find this book?
 ---------------------------------------

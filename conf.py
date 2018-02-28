@@ -24,9 +24,9 @@ copyright = u'2018, Pietro Braione'
 author = u'Pietro Braione'
 
 # The short X.Y version
-version = u''
+version = u'latest'
 # The full version, including alpha/beta/rc tags
-release = u''
+release = u'latest'
 
 highlight_language = u'java'
 
