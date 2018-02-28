@@ -12,5 +12,5 @@ The author of this book is the main maintainer of JBSE, Pietro Braione. You can 
 
 ## Where do I find this book?
 
-This book is available on Github. Its repository is [https://github.com/pietrobraione/jbse-manual](https://github.com/pietrobraione/jbse-manual). The book is written in markdown and is published on Gitbook at [https://pietrobraione.gitbooks.io/the-jbse-manual/](https://pietrobraione.gitbooks.io/the-jbse-manual/).
+This book is available on Github. Its repository is [https://github.com/pietrobraione/jbse-manual](https://github.com/pietrobraione/jbse-manual). The book is written in reStructuredText and is published on readthedocs at [http://jbse-manual.readthedocs.io](http://jbse-manual.readthedocs.io).
 
