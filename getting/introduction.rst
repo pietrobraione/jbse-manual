@@ -58,14 +58,14 @@ This program is the typical "double-if" example that is customarily used to illu
 
 Now let us perform symbolic execution of the same method ``m`` with a symbolic value, say :math:`x_0`, for its input ``x``. We do not make any assumption on what the value of :math:`x_0` might be: It could stand for any possible ``int`` value. This is how JBSE executes the method:
 
-* JBSE evaluates the branch condition ``x > 0`` of the first ``if`` statement. Since ``x == ``:math:`x_0`, and no assumption is made on the concrete value :math:`x_0` stands for, JBSE cannot determine what is the next statement that must be executed. Therefore JBSE does what we did in the case of the quadratic equation with symbolic coefficients: It splits cases.
-* First, JBSE assumes that the branch condition ``x > 0`` evaluates to ``true``. Being ``x == `` :math:`x_0` this happens when :math:`x_0 > 0`.
+* JBSE evaluates the branch condition ``x > 0`` of the first ``if`` statement. Since ``x ==`` :math:`x_0`, and no assumption is made on the concrete value :math:`x_0` stands for, JBSE cannot determine what is the next statement that must be executed. Therefore JBSE does what we did in the case of the quadratic equation with symbolic coefficients: It splits cases.
+* First, JBSE assumes that the branch condition ``x > 0`` evaluates to ``true``. Being ``x ==`` :math:`x_0` this happens when :math:`x_0 > 0`.
 
    * In this case, JBSE selects for execution the ``then`` branch of the first ``if`` statement, ``a`` is set to ``true``, and the execution continues with the second ``if`` statement.
    * JBSE then evaluates the second branch condition: But since it has previously assumed that :math:`x_0 > 0` the second branch condition always evaluates to ``true``. JBSE selects the ``then`` branch of the second ``if`` statement, ``b`` is set to ``true``, and the execution continues with the ``assert`` statement.
    * JBSE evaluate the condition ``a == b`` of the ``assert`` statement. Again, ``a`` and ``b`` are set to ``true``, the condition holds and the method execution terminates correctly.
 
-* Once finished the analysis of the case :math:`x_0 > 0` JBSE *backtracks*, i.e., restores the state of the execution where the next statement to be executed is the first ``if`` statement, and considers the opposite case, i.e., the case where the branch condition ``x > 0`` evaluates to ``false``. Since in the backtracked state it is again ``x == `` :math:`x_0`, this happens when :math:`x_0 \leq 0`.
+* Once finished the analysis of the case :math:`x_0 > 0` JBSE *backtracks*, i.e., restores the state of the execution where the next statement to be executed is the first ``if`` statement, and considers the opposite case, i.e., the case where the branch condition ``x > 0`` evaluates to ``false``. Since in the backtracked state it is again ``x ==`` :math:`x_0`, this happens when :math:`x_0 \leq 0`.
 
    * Now the ``else`` branch of the first ``if`` statement is followed and ``a`` is set to ``false``. 
    * The execution continues with the second ``if`` statement, and since JBSE has now assumed that :math:`x_0 \leq 0` it will evaluate the second branch condition to ``false``. The ``else`` branch of the second ``if`` statement is followed and ``b`` is set to ``false``.
@@ -194,24 +194,24 @@ Let us suppose that ``List`` is an abstract class or interface with its only con
 Back to the ``Target.sum()`` method, its ``for`` loop scans the input ``list`` in the forward direction, by first accessing ``list`` itself, then ``list.head``, ``list.head.next``, then ``list.head.next.next``... and so on, until the list termination criterion is met (e.g., until one of the ``next`` references is ``null``). When first entering the loop, the lazy initialization procedure will consider the following cases.
 
 1. Either ``list == null``,
-2. Or ``list != null``, say ``list == ``:math:`l_0`, for some object :math:`l_0` of class ``LinkedList``.
+2. Or ``list != null``, say ``list ==`` :math:`l_0`, for some object :math:`l_0` of class ``LinkedList``.
 
 No more cases need to be considered, since ``List`` has only one concrete subclass ``LinkedList``. In the first case, the method raises a ``NullPointerException``. In the second case, the method starts iterating through the nodes of the list, and accesses ``list.head``. Two subcases arise:
 
-2. ``list == ``:math:`l_0`:
+2. ``list ==`` :math:`l_0`:
 
   1. Either ``list.head == null``,
-  2. Or ``list.head != null``, say ``list.head == ``:math:`n_0`, for some object :math:`n_0` of class ``LinkedList.Node``.
+  2. Or ``list.head != null``, say ``list.head ==`` :math:`n_0`, for some object :math:`n_0` of class ``LinkedList.Node``.
 
 In case 2.1 (empty list) the method will stop iterating and return the value of the ``tot`` variable, that is still the initialization value 0. In case 2.2 the method will add the value ``list.head.value`` to ``tot`` and continue iterating through the list by accessing ``list.head.next``. This time *three* cases may arise:
 
-2. ``list == ``:math:`l_0`:
+2. ``list ==`` :math:`l_0`:
 
-  2. ``list.head == ``:math:`n_0`:
+  2. ``list.head ==`` :math:`n_0`:
 
     1. Either ``list.head.next == null``,
-    2. Or ``list.head.next == ``:math:`n_0`,
-    3. Or ``list.head.next == ``:math:`n_1`, where :math:`n_1` is an object of class ``LinkedList.Node`` different from :math:`n_0`.
+    2. Or ``list.head.next ==`` :math:`n_0`,
+    3. Or ``list.head.next ==`` :math:`n_1`, where :math:`n_1` is an object of class ``LinkedList.Node`` different from :math:`n_0`.
 
 
 .. _Java Virtual Machine Specification (JVMS) books: https://docs.oracle.com/javase/specs/
