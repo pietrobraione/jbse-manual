@@ -58,14 +58,14 @@ This program is the typical "double-if" example that is customarily used to illu
 
 Now let us perform symbolic execution of the same method ``m`` with a symbolic value, say :math:`x_0`, for its input ``x``. We do not make any assumption on what the value of :math:`x_0` might be: It could stand for any possible ``int`` value. This is how JBSE executes the method:
 
-* JBSE evaluates the branch condition ``x > 0`` of the first ``if`` statement. Since ``x ==``:math:`x_0`, and no assumption is made on the concrete value :math:`x_0` stands for, JBSE cannot determine what is the next statement that must be executed. Therefore JBSE does what we did in the case of the quadratic equation with symbolic coefficients: It splits cases.
-* First, JBSE assumes that the branch condition ``x > 0`` evaluates to ``true``. Being ``x ==`` :math:`x_0` this happens when :math:`x_0 > 0`.
+* JBSE evaluates the branch condition ``x > 0`` of the first ``if`` statement. Since ``x == ``:math:`x_0`, and no assumption is made on the concrete value :math:`x_0` stands for, JBSE cannot determine what is the next statement that must be executed. Therefore JBSE does what we did in the case of the quadratic equation with symbolic coefficients: It splits cases.
+* First, JBSE assumes that the branch condition ``x > 0`` evaluates to ``true``. Being ``x == `` :math:`x_0` this happens when :math:`x_0 > 0`.
 
    * In this case, JBSE selects for execution the ``then`` branch of the first ``if`` statement, ``a`` is set to ``true``, and the execution continues with the second ``if`` statement.
    * JBSE then evaluates the second branch condition: But since it has previously assumed that :math:`x_0 > 0` the second branch condition always evaluates to ``true``. JBSE selects the ``then`` branch of the second ``if`` statement, ``b`` is set to ``true``, and the execution continues with the ``assert`` statement.
    * JBSE evaluate the condition ``a == b`` of the ``assert`` statement. Again, ``a`` and ``b`` are set to ``true``, the condition holds and the method execution terminates correctly.
 
-* Once finished the analysis of the case :math:`x_0 > 0` JBSE *backtracks*, i.e., restores the state of the execution where the next statement to be executed is the first ``if`` statement, and considers the opposite case, i.e., the case where the branch condition ``x > 0`` evaluates to ``false``. Since in the backtracked state it is again ``x ==`` :math:`x_0`, this happens when :math:`x_0 \leq 0`.
+* Once finished the analysis of the case :math:`x_0 > 0` JBSE *backtracks*, i.e., restores the state of the execution where the next statement to be executed is the first ``if`` statement, and considers the opposite case, i.e., the case where the branch condition ``x > 0`` evaluates to ``false``. Since in the backtracked state it is again ``x == `` :math:`x_0`, this happens when :math:`x_0 \leq 0`.
 
    * Now the ``else`` branch of the first ``if`` statement is followed and ``a`` is set to ``false``. 
    * The execution continues with the second ``if`` statement, and since JBSE has now assumed that :math:`x_0 \leq 0` it will evaluate the second branch condition to ``false``. The ``else`` branch of the second ``if`` statement is followed and ``b`` is set to ``false``.
@@ -152,14 +152,66 @@ When the inputs to a program are numeric, this is pretty much what one needs to 
 
 What if we symbolically execute the ``m`` method? As usual the value of the parameter variable ``node`` is unknown at the beginning of the execution, and the variable is initialized with a symbol :math:`node_0` standing for the unknown value. This symbol is a *symbolic reference*, and in absence of assumptions it may stand for any possible reference, either valid or invalid (``null``), to the heap memory at the initial state of the execution.
 
-Now what if the class ``Node`` is abstract and has :math:`N` concrete subclasses, each implementing a different version of the ``swap`` method? When JBSE arrives at the ``node.swap()`` statement, to determine what is the next statement to be executed it must split cases. The possible cases are, at least, :math:`N + 1`: One case where ``node == null`` and the next statement will be the ``catch`` block, if present, for the ``NullPointerException`` that the ``node.swap()`` statement execution raises, plus the :math:`N` cases where :math:`node_0` is a reference to each of the different concrete subclasses of ``Node``, and the next statement will be the first statement of the implementation of ``node`` in the assumed class. This differs from the case where only numeric symbolic values were present, and the number of possible cases at a branch is either one or two. On can conjecture that the presence of symbolic references may cause an explosion in the number of paths in the symbolic execution tree, and indeed it is often the case.
+Now what if the class ``Node`` is abstract and has :math:`N` concrete subclasses, each implementing a different version of the ``swap`` method? When JBSE arrives at the ``node.swap()`` statement, to determine what is the next statement to be executed it must split cases. The possible cases are, at least, :math:`N + 1`: One case where ``node == null`` and the next statement will be the ``catch`` block, if present, for the ``NullPointerException`` that the ``node.swap()`` statement execution raises, plus the :math:`N` cases where :math:`node_0` is a reference to each of the different concrete subclasses of ``Node``, and the next statement will be the first statement of the implementation of ``swap()`` in the assumed class. This differs from the case where only numeric symbolic values were present, and the number of possible cases at a branch is at most two.
 
-We have said that symbolic execution at the ``node.swap()`` statement must consider *at least* :math:`N + 1` cases: Should it consider more cases for the analysis to be complete? The answer to this question is found in `this paper`_, which introduces a technique, called "lazy initialization", that is used in JBSE to resolve the use of a symbolic reference at a certain point of the symbolic execution. According to this technique the cases to be considered are the following ones:
+Because of this reasone, one can conjecture that the introduction of symbolic references has the potential of causing an explosion in the number of paths in the symbolic execution tree. Actually, the situation is even worse: Symbolic execution at the ``node.swap()`` statement must consider *at least* :math:`N + 1` cases, usually even more. How many? The answer to this question is found in `this paper`_, which introduces a technique, called "lazy initialization", that JBSE uses to resolve a symbolic reference at a certain point of the symbolic execution. According to the lazy initialization technique the cases to be considered are the following ones:
 
 * The symbolic reference may be ``null``, or
-* The symbolic reference may be a reference to a type-compatible object assumed by lazy initialization earlier during the execution, for all :math:`K` such objects, or
-* The symbolic reference may be a reference to a type-compatible object different from all the objects assumed by lazy initialization earlier during the execution, for all :math:`N` compatible types.
+* The symbolic reference may be a reference to a *fresh* type-compatible object,  for all :math:`N` compatible types, or
+* The symbolic reference may be a reference to a *non-fresh* type-compatible object, where with "non-fresh" we mean assumed by lazy initialization earlier during the execution, for all :math:`K` such objects.
 
+To clarify what this means we will consider the following example:
+
+.. code-block:: java
+
+   package esecfse2013;
+
+   public class Target {
+       int sum(List<Integer> list) {
+           int tot = 0;
+	   for (int item : list) {
+	       tot += item;
+	   }
+	   return tot;
+       }
+   }
+
+Let us suppose that ``List`` is an abstract class or interface with its only concrete subclass ``LinkedList`` defined as follows:
+
+.. code-block:: java
+
+   public class LinkedList<I> {
+       private Node head;
+
+       private static class Node {
+           private I value;
+           private Node next;
+           ...
+       }
+       ...
+   }
+
+Back to the ``Target.sum()`` method, its ``for`` loop scans the input ``list`` in the forward direction, by first accessing ``list`` itself, then ``list.head``, ``list.head.next``, then ``list.head.next.next``... and so on, until the list termination criterion is met (e.g., until one of the ``next`` references is ``null``). When first entering the loop, the lazy initialization procedure will consider the following cases.
+
+1. Either ``list == null``,
+2. Or ``list != null``, say ``list == ``:math:`l_0`, for some object :math:`l_0` of class ``LinkedList``.
+
+No more cases need to be considered, since ``List`` has only one concrete subclass ``LinkedList``. In the first case, the method raises a ``NullPointerException``. In the second case, the method starts iterating through the nodes of the list, and accesses ``list.head``. Two subcases arise:
+
+2. ``list == ``:math:`l_0`:
+
+  1. Either ``list.head == null``,
+  2. Or ``list.head != null``, say ``list.head == ``:math:`n_0`, for some object :math:`n_0` of class ``LinkedList.Node``.
+
+In case 2.1 (empty list) the method will stop iterating and return the value of the ``tot`` variable, that is still the initialization value 0. In case 2.2 the method will add the value ``list.head.value`` to ``tot`` and continue iterating through the list by accessing ``list.head.next``. This time *three* cases may arise:
+
+2. ``list == ``:math:`l_0`:
+
+  2. ``list.head == ``:math:`n_0`:
+
+    1. Either ``list.head.next == null``,
+    2. Or ``list.head.next == ``:math:`n_0`,
+    3. Or ``list.head.next == ``:math:`n_1`, where :math:`n_1` is an object of class ``LinkedList.Node`` different from :math:`n_0`.
 
 
 .. _Java Virtual Machine Specification (JVMS) books: https://docs.oracle.com/javase/specs/
