@@ -213,7 +213,7 @@ In case 2.1 (empty list) the method stops iterating and return the value of the 
     2. Or ``list.head.next ==`` :math:`n_0`,
     3. Or ``list.head.next ==`` :math:`n_1`, where :math:`n_1` is an object of class ``LinkedList.Node`` different from :math:`n_0`.
 
-In case 2.2.1 (list with one element) the method stops iterating and returns the value of ``tot``, that is, ``list.head.value``. In case 2.2.2 the method will iterate undefinitely through ``list.head.next.next == list.head.next.next.next == ... ==`` :math:` n_0`, never returning to the caller. Case 2.2.3 has *four* subcases:
+In case 2.2.1 (list with one element) the method stops iterating and returns the value of ``tot``, that is, ``list.head.value``. In case 2.2.2 the method will diverge by iterating undefinitely through ``list.head.next.next == list.head.next.next.next == ... ==`` :math:`n_0`, never returning to the caller. In case 2.2.3 the method will add ``list.head.next.value`` to ``tot``, yielding ``tot == list.head.value + list.head.next.value`` and move on to ``list.head.next.next`` yielding *four* subcases:
 
 2. ``list ==`` :math:`l_0`:
 
@@ -221,8 +221,13 @@ In case 2.2.1 (list with one element) the method stops iterating and returns the
 
     3. ``list.head.next ==`` :math:`n_1`:
 
-       1. 
+      1. Either ``list.head.next.next == null``,
+      2. Or ``list.head.next.next ==`` :math:`n_0`,
+      3. Or ``list.head.next.next ==`` :math:`n_1`,
+      4. Or ``list.head.next.next ==`` :math:`n_2`, where :math:`n_2` is an object of class ``LinkedList.Node`` different from :math:`n_0` and :math:`n_1`.
 
+
+	 
 .. _Java Virtual Machine Specification (JVMS) books: https://docs.oracle.com/javase/specs/
 .. _Hotspot: http://www.oracle.com/technetwork/java/javase/downloads/index.html
 .. _J9: http://www.eclipse.org/openj9/
