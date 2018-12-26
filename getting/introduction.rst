@@ -203,7 +203,7 @@ No more cases need to be considered, since ``List`` has only one concrete subcla
   1. Either ``list.head == null``,
   2. Or ``list.head != null``, say ``list.head ==`` :math:`n_0`, for some object :math:`n_0` of class ``LinkedList.Node``.
 
-In case 2.1 (empty list) the method will stop iterating and return the value of the ``tot`` variable, that is still the initialization value 0. In case 2.2 the method will add the value ``list.head.value`` to ``tot`` and continue iterating through the list by accessing ``list.head.next``. This time *three* cases may arise:
+In case 2.1 (empty list) the method stops iterating and return the value of the ``tot`` variable, that is still the initialization value 0. In case 2.2 the method adds the value ``list.head.value`` to ``tot`` and continue iterating through the list by accessing ``list.head.next``. This time *three* cases may arise:
 
 2. ``list ==`` :math:`l_0`:
 
@@ -213,6 +213,15 @@ In case 2.1 (empty list) the method will stop iterating and return the value of 
     2. Or ``list.head.next ==`` :math:`n_0`,
     3. Or ``list.head.next ==`` :math:`n_1`, where :math:`n_1` is an object of class ``LinkedList.Node`` different from :math:`n_0`.
 
+In case 2.2.1 (list with one element) the method stops iterating and returns the value of ``tot``, that is, ``list.head.value``. In case 2.2.2 the method will iterate undefinitely through ``list.head.next.next == list.head.next.next.next == ... ==`` :math:` n_0`, never returning to the caller. Case 2.2.3 has *four* subcases:
+
+2. ``list ==`` :math:`l_0`:
+
+  2. ``list.head ==`` :math:`n_0`:
+
+    3. ``list.head.next ==`` :math:`n_1`:
+
+       1. 
 
 .. _Java Virtual Machine Specification (JVMS) books: https://docs.oracle.com/javase/specs/
 .. _Hotspot: http://www.oracle.com/technetwork/java/javase/downloads/index.html
