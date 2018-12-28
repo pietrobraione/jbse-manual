@@ -75,29 +75,33 @@ This example shows you that symbolic execution is not much different from ordina
 
 If a program is deterministic, i.e., it does always the same things when fed by the same inputs, then each of its possible concrete executions yields a linear sequence of states, where each state has exactly one successor. The sequence corresponds to a single path in the control flow graph of the program. On converse its possible symbolic executions yield a *symbolic execution tree*, rooted at the initial symbolic state and branching whenever a symbolic state has more than one successor because of case splitting.
 
+.. _doubleif-symbolic-tree:
+
 .. figure:: /img/doubleif_symbolic_tree.*
    :align: center
    :scale: 40
 
    Symbolic execution tree for the "double-if" program.
 
-The previous figure reports the symbolic execution tree for the "double-if" program. Circles are program states, indicating the values stored for all the variables in the program. Arrows join a state with its possible successors, and are labeled according to the next statement to be executed: If this is an assignment, the label reports the assignment, if it is a conditional, the label reports the *evaluation* of the conditional in the pre-state. The final states that pass the assertion are represented by a green tick. The figure does not show the infeasible paths, but we will often consider the case of symbolic execution trees where all the paths through the control flow graph, be them infeasible or not, are reported. We will call *static* a symbolic execution tree that reports all the static paths (either feasible or infeasible) through the program, and by contrast we will call *dynamic* a symbolic execution tree that reports only feasible paths. The next figure, for instance, reports the static symbolic execution tree of the "double-if" example program.
+:num:`Figure #doubleif-symbolic-tree` reports the symbolic execution tree for the "double-if" program. Circles are program states, indicating the values stored for all the variables in the program. Arrows join a state with its possible successors, and are labeled according to the next statement to be executed: If this is an assignment, the label reports the assignment, if it is a conditional, the label reports the *evaluation* of the conditional in the pre-state. The final states that pass the assertion are represented by a green tick. The figure does not show the infeasible paths, but we will often consider the case of symbolic execution trees where all the paths through the control flow graph, be them infeasible or not, are reported. We will call *static* a symbolic execution tree that reports all the static paths (either feasible or infeasible) through the program, and by contrast we will call *dynamic* a symbolic execution tree that reports only feasible paths. :num:`Figure #doubleif-symbolic-tree-static`, for instance, reports the static symbolic execution tree of the "double-if" example program. The red cross signifies a final state that does not pass the assertion. The path condition for a certain path is obtained by visiting the symbolic execution tree from the root through the path, and conjoining all the edge labels for conditional expressions evaluations.
+
+.. _doubleif-symbolic-tree-static:
 
 .. figure:: /img/doubleif_symbolic_tree_static.*
    :align: center
    :scale: 50
 
    Static symbolic execution tree for the "double-if" program.
-	    
-The red cross signifies a final state that does not pass the assertion. The path condition for a certain path is obtained by visiting the symbolic execution tree from the root through the path, and conjoining all the edge labels for conditional expressions evaluations.
+
+In :num:`Figure #doubleif-symbolic-tree-path` the path marked with the red dashed arrow has as path condition the logical "and" of the two expressions surrounded by a red circle, i.e., :math:`x_0 > 0 \land x_0 \leq 0`. Being the path condition unsatisfiable, the path is infeasible.
+
+.. _doubleif-symbolic-tree-path:
 
 .. figure:: /img/doubleif_symbolic_tree_path.*
    :align: center
    :scale: 50
 
    A path in the "double-if" program and its path condition.
-
-In the previous figure the path condition for the path marked with the red dashed arrow is given by conjoining the two expressions circled in red, yielding :math:`x_0 > 0 \land x_0 \leq 0`. Being the path condition unsatisfiable, the path is infeasible.
 
 The "double-if" program has a finite symbolic execution tree, but this is not the general case. If the program has loops the static symbolic execution tree is infinite, and most likely also the dynamic symbolic execution tree is. Consider for instance the following program:
 
@@ -114,7 +118,7 @@ The "double-if" program has a finite symbolic execution tree, but this is not th
        }
     }
 
-Its static symbolic execution tree is reported in the next figure:
+.. _loop-symbolic-tree:
 
 .. figure:: /img/loop_symbolic_tree.*
    :align: center
@@ -122,7 +126,9 @@ Its static symbolic execution tree is reported in the next figure:
 
    Static symbolic execution tree for the loop program.
 
-If a program may diverge, i.e., it has at least one (concrete) execution that does not terminate, then this execution is infinite, and correspondingly there is an infinite path in the static symbolic execution tree for it. Note however that the vice versa does not in general hold: If the static symbolic execution tree has an infinite path, this does not necessarily imply that the program may diverge. The example loop program illustrates that: Its static symbolic execution tree has one infinite path:
+Its static symbolic execution tree, reported in :num:`Figure #loop-symbolic-tree`, is clearly infinite. If a program may diverge, i.e., it has at least one (concrete) execution that does not terminate, then this execution is infinite, and correspondingly there is an infinite path in the static symbolic execution tree for it. Note however that the vice versa does not in general hold: If the static symbolic execution tree has an infinite path, this does not necessarily imply that the program may diverge. The example loop program illustrates that: Its static symbolic execution tree has one infinite path, highlighted in :num:`Figure #loop-symbolic-tree-path` with a red dashed arrow, but since we can easily prove that the program always terminates, the path is infeasible. Note also that it is not possible to exclude this path from the tree without excluding some feasible paths: In other words, it is not possible to build a dynamic symbolic execution tree containing exactly all the feasible paths.
+
+.. _loop-symbolic-tree-path:
 
 .. figure:: /img/loop_symbolic_tree_path.*
    :align: center
@@ -130,7 +136,7 @@ If a program may diverge, i.e., it has at least one (concrete) execution that do
 
    Infinite path in the static symbolic execution tree for the loop program.
 
-but since we can easily prove that the program always terminates, the path is infeasible. Note also that it is not possible to exclude this path from the tree without excluding some feasible paths: In other words, it is not possible to build a dynamic symbolic execution tree containing exactly all the feasible paths.
+
 
 To summarize, the symbolic execution of a program with loops may not terminate, as the symbolic executor may get stuck analyzing an infinite path, or an infinite set of finite paths. For this reason symbolic executors allow users to set an analysis budget (maximum time, maximum depth), and when they exhaust the budget then they abort the analysis. Although a symbolic executor is able in practice to analyze only a finite subset of its possible symbolic paths, consider that each symbolic path stands for a potentially infinite set of concrete paths. For this reason symbolic execution remains a technique more powerful than testing.
 
@@ -152,15 +158,15 @@ When the inputs to a program are numeric, this is pretty much what one needs to 
 
 What if we symbolically execute the ``m`` method? As usual the value of the parameter variable ``node`` is unknown at the beginning of the execution, and the variable is initialized with a symbol :math:`node_0` standing for the unknown value. This symbol is a *symbolic reference*, and in absence of assumptions it may stand for any possible reference, either valid or invalid (``null``), to the heap memory at the initial state of the execution.
 
-Now what if the class ``Node`` is abstract and has :math:`N` concrete subclasses, each implementing a different version of the ``swap`` method? When JBSE arrives at the ``node.swap()`` statement, to determine what is the next statement to be executed it must split cases. The possible cases are, at least, :math:`N + 1`: One case where ``node == null`` and the next statement will be the ``catch`` block, if present, for the ``NullPointerException`` that the ``node.swap()`` statement execution raises, plus the :math:`N` cases where :math:`node_0` is a reference to each of the different concrete subclasses of ``Node``, and the next statement will be the first statement of the implementation of ``swap()`` in the assumed class. This differs from the case where only numeric symbolic values were present, and the number of possible cases at a branch is at most two.
-
-Because of this reasone, one can conjecture that the introduction of symbolic references has the potential of causing an explosion in the number of paths in the symbolic execution tree. Actually, the situation is even worse: Symbolic execution at the ``node.swap()`` statement must consider *at least* :math:`N + 1` cases, usually even more. How many? The answer to this question is found in `this paper`_, which introduces a technique, called "lazy initialization", that JBSE uses to resolve a symbolic reference at a certain point of the symbolic execution. According to the lazy initialization technique the cases to be considered are the following ones:
+Now what if the class ``Node`` is abstract and has :math:`N` concrete subclasses, each implementing a different version of the ``swap`` method? When JBSE arrives at the ``node.swap()`` statement, to determine what is the next statement to be executed it must split cases. The possible cases are, at least, :math:`N + 1`: One case where ``node == null`` and the next statement will be the ``catch`` block, if present, for the ``NullPointerException`` that the ``node.swap()`` statement execution raises, plus the :math:`N` cases where :math:`node_0` is a reference to each of the different concrete subclasses of ``Node``, and the next statement will be the first statement of the implementation of ``swap()`` in the assumed class. This differs from the case where only numeric symbolic values were present, and the number of possible cases at a branch is at most two. The situation is actually worse than this, and symbolic execution typically need to consider many more subcases than :math:`N + 1`. How many? The answer to this question is found in `this paper`_, which introduces a technique, called "lazy initialization", that is the one used by JBSE to determine which cases need to be analyzed when using a symbolic reference. According to the lazy initialization technique symbolic execution needs to consider the following cases:
 
 * The symbolic reference may be ``null``, or
 * The symbolic reference may be a reference to a *fresh* type-compatible object,  for all :math:`N` compatible types, or
 * The symbolic reference may be a reference to a *non-fresh* type-compatible object, where with "non-fresh" we mean assumed by lazy initialization earlier during the execution, for all :math:`K` such objects.
 
-To clarify what this means we will consider the following example:
+Now some terminology. We will say that a symbolic reference on which symbolic execution did no assumption is *unresolved*, a symbolic reference that is assumed to be ``null`` is *resolved by null*, a symbolic reference that is assumed to refer a fresh object to be *resolved by expansion*, and a symbolic reference that is assumed to refer a non-fresh object to be *resolved by alias*.
+
+To clarify how lazy initialization works we will now consider the following example program, that scans a list of integers and returns the sum of the stored values:
 
 .. code-block:: java
 
@@ -176,7 +182,7 @@ To clarify what this means we will consider the following example:
        }
    }
 
-Let us suppose that ``List`` is an abstract class or interface with its only concrete subclass ``LinkedList`` defined as follows:
+Let us suppose that ``List`` is an abstract class or interface whose only concrete subclass is a ``LinkedList`` class defined as follows:
 
 .. code-block:: java
 
@@ -191,43 +197,63 @@ Let us suppose that ``List`` is an abstract class or interface with its only con
        ...
    }
 
-Back to the ``Target.sum()`` method, its ``for`` loop scans the input ``list`` in the forward direction, by first accessing ``list`` itself, then ``list.head``, ``list.head.next``, then ``list.head.next.next``... and so on, until the list termination criterion is met (e.g., until one of the ``next`` references is ``null``). When first entering the loop, the lazy initialization procedure will consider the following cases.
+Back to the ``Target.sum()`` method, to scan the input list the ``for`` loop must first access ``list`` itself, then ``list.head``, then ``list.head.next``, then ``list.head.next.next``... and so on, until the list termination criterion is met (for ``LinkedList`` data structures we will consider the case where they are ``null``-terminated). Symbolic execution of ``Target.sum()`` will initially need to determine whether the symbolic reference stored in ``list``, say  :math:`l_0`, points to an object or not. The following cases may hold: 
 
-1. Either ``list == null``,
-2. Or ``list != null``, say ``list ==`` :math:`l_0`, for some object :math:`l_0` of class ``LinkedList``.
+1. Either :math:`l_0` ``== null``,
+2. Or :math:`l_0` ``!= null``, i.e., refers some object of class ``LinkedList``.
 
-No more cases need to be considered, since ``List`` has only one concrete subclass ``LinkedList``. In the first case, the method raises a ``NullPointerException``. In the second case, the method starts iterating through the nodes of the list, and accesses ``list.head``. Two subcases arise:
+No more cases need to be considered, since ``List`` has only one concrete subclass. In case 1, the method raises a ``NullPointerException``. In case 2, the method starts iterating through the nodes of the list, and accesses ``list.head``, that stores a symbolic reference, say :math:`n_0`. Because of this access two subcases arise:
 
-2. ``list ==`` :math:`l_0`:
+2. :math:`l_0` ``!= null``:
 
-  1. Either ``list.head == null``,
-  2. Or ``list.head != null``, say ``list.head ==`` :math:`n_0`, for some object :math:`n_0` of class ``LinkedList.Node``.
+  1. Either :math:`n_0` ``== null``,
+  2. Or :math:`n_0` ``!= null``, i.e., refers some object of class ``LinkedList.Node``.
 
-In case 2.1 (empty list) the method stops iterating and return the value of the ``tot`` variable, that is still the initialization value 0. In case 2.2 the method adds the value ``list.head.value`` to ``tot`` and continue iterating through the list by accessing ``list.head.next``. This time *three* cases may arise:
+In case 2.1 (empty list) the method stops iterating and return the value of the ``tot`` variable, i.e., its initialization value 0. In case 2.2 the method adds to ``tot`` the content of the ``value`` field of the :math:`n_0` object (say, :math:`v_0`), then performs another iteration of the loop body by accessing ``list.head.next``, that stores another symbolic reference :math:`n_1`. This time *three* cases may arise:
 
-2. ``list ==`` :math:`l_0`:
+2. :math:`l_0` ``!= null``:
 
-  2. ``list.head ==`` :math:`n_0`:
+  2. :math:`n_0` ``!= null``:
 
-    1. Either ``list.head.next == null``,
-    2. Or ``list.head.next ==`` :math:`n_0`,
-    3. Or ``list.head.next ==`` :math:`n_1`, where :math:`n_1` is an object of class ``LinkedList.Node`` different from :math:`n_0`.
+    1. Either :math:`n_1` ``== null``,
+    2. Or :math:`n_1` ``==`` :math:`n_0`,
+    3. Or :math:`n_1` refers some object of class ``LinkedList.Node`` different from :math:`n_0`.
 
-In case 2.2.1 (list with one element) the method stops iterating and returns the value of ``tot``, that is, ``list.head.value``. In case 2.2.2 the method will diverge by iterating undefinitely through ``list.head.next.next == list.head.next.next.next == ... ==`` :math:`n_0`, never returning to the caller. In case 2.2.3 the method will add ``list.head.next.value`` to ``tot``, yielding ``tot == list.head.value + list.head.next.value`` and move on to ``list.head.next.next`` yielding *four* subcases:
+In case 2.2.1 (list with one element) the method stops iterating and returns the value of ``tot``, that is, :math:`v_0`. In case 2.2.2 (:math:`n_1` is non-fresh) the method will diverge by iterating undefinitely through ``list.head.next.next == list.head.next.next.next == ... ==`` :math:`n_0`, never returning to the caller. In case 2.2.3 (:math:`n_1` fresh) the method will add ``list.head.next.value`` (say, :math:`v_1`) to ``tot``, and iterate once again the loop body by accessing ``list.head.next.next``, that stores yet another symbolic reference :math:`n_2`. This access yields *four* subcases:
 
-2. ``list ==`` :math:`l_0`:
+2. :math:`l_0` ``!= null``:
 
-  2. ``list.head ==`` :math:`n_0`:
+  2. :math:`n_0` ``!= null``:
 
-    3. ``list.head.next ==`` :math:`n_1`:
+    3. :math:`n_1` ``!= null`` and fresh:
 
-      1. Either ``list.head.next.next == null``,
-      2. Or ``list.head.next.next ==`` :math:`n_0`,
-      3. Or ``list.head.next.next ==`` :math:`n_1`,
-      4. Or ``list.head.next.next ==`` :math:`n_2`, where :math:`n_2` is an object of class ``LinkedList.Node`` different from :math:`n_0` and :math:`n_1`.
+      1. Either :math:`n_2` ``== null``,
+      2. Or :math:`n_2` ``==`` :math:`n_0`,
+      3. Or :math:`n_2` ``==`` :math:`n_1`,
+      4. Or :math:`n_2` refers some object of class ``LinkedList.Node`` different from :math:`n_0` and :math:`n_1`.
+
+Case 2.2.3.1 is the case of a list with exactly two elements: The method stops iterating and returns :math:`v_0 + v_1`. Cases 2.2.3.2 and 2.2.3.3 are similar to case 2.2.2: The :math:`n_2` symbolic reference is non-fresh, and the method diverges by iterating indefinitely through the chain of ``...next...`` references. Case 2.2.3.4 is similar to case 2.2.3: The :math:`n_2` symbolic reference is fresh, and the method adds the content of the ``value`` field (say, :math:`v_2`) of the fresh object to ``tot`` and iterates once more the loop by accessing ``list.head.next.next.next``.
+
+.. _scanlist-symbolic-tree:
+
+.. figure:: /img/scanlist_symbolic_tree.*
+   :align: center
+   :scale: 70
+
+   Symbolic execution tree for the list scanning program.
+
+:num:`Figure #scanlist-symbolic-tree` represents the portion of the symbolic execution tree we discussed. It can be easily inferred that, whenever a :math:`n_i` symbolic reference, obtained by accessing a ``list.head.next.next...next`` sequence, is used during symbolic execution, up to :math:`i + 2` cases must be considered: The case where :math:`n_i` ``== null``, the :math:`i` cases where :math:`n_i` is equal to (i.e., *aliases*) :math:`n_0`, :math:`n_1`... :math:`n_{i-1}`, and the case where :math:`n_i` points to a fresh object, different from the objects pointed by :math:`n_0, n_1, \ldots, n_{i-1}`. If we impose a bound on the number of possible objects with class ``LinkedList.Node``, say not more than :math:`W`, the symbolic execution tree will have :math:`1 + 1 + 2 + 3 + \ldots + W = 1 + \sum_{i = 1}^{W} i = 1 + W (W + 1) / 2 \in O(W^2)` paths. Note, however, that not all these paths are relevant to the analysis of the behaviour of the ``Target.sum()`` method. When analyzing a piece of code we usually make the implicit assumption that its inputs must be *well-formed*. In the case of null-terminated linked lists, all the arrangements of list nodes that contain loops are ill-formed: If such "garbage" lists can be produced, this is due to a bug in the implementation of the ``LinkedList`` class, not of the method under analysis, and we are not really interested in how this behaves when fed by garbage. In other words, while lazy initialization performs an exhaustive analysis of all the possible arrangements of the objects in the input heap, not all these arrangements are relevant to the analysis of the target code, and the symbolic executor should be able to discard them. In our example, JBSE should discard all the cases where the :math:`n_i` symbolic references are resolved by alias, retaining only the resolutions by null or by expansion. Were JBSE able to do that, the resulting symbolic execution tree would have the shape depicted in :num:`Figure #scanlist-symbolic-tree-wellformed`. If we bound the maximum number of ``LinkedList.Node`` objects to be at most :math:`W`, the total number of paths becomes :math:`1 + 1 + \ldots + 1 = 1 + \sum_{i = 1}^{W} 1 = 1 + W \in O(W)`, much less than without filtering out the irrelevant traces. Moreover, JBSE would discard all the diverging (infinite) paths except the one marked by a red dashed arrow in :num:`Figure #scanlist-symbolic-tree-wellformed`, that is unfeasible because the heap memory of a program always contains a finite, albeit unbounded, number of objects. This allows us to conclude that, when fed by well-formed linked lists, the ``Target.sum()`` method always converges and returns the sum of the values stored in the list.
+
+.. _scanlist-symbolic-tree-wellformed:
+
+.. figure:: /img/scanlist_symbolic_tree_wellformed.*
+   :align: center
+   :scale: 70
+
+   Symbolic execution tree for the list scanning program (only well-formed lists).
 
 
-	 
+
 .. _Java Virtual Machine Specification (JVMS) books: https://docs.oracle.com/javase/specs/
 .. _Hotspot: http://www.oracle.com/technetwork/java/javase/downloads/index.html
 .. _J9: http://www.eclipse.org/openj9/
