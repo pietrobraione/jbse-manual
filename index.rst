@@ -10,7 +10,7 @@ The JBSE manual
 .. toctree::
    :maxdepth: 2
 
-   about.rst
-   getting/introduction.rst
+   text/about.rst
+   text/introduction.rst
 
 
