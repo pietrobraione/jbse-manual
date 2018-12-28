@@ -12,5 +12,7 @@ The JBSE manual
 
    text/about.rst
    text/introduction.rst
+   text/getting.rst
+   
 
 

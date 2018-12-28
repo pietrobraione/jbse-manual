@@ -252,7 +252,7 @@ Case 2.2.3.1 is the case of a list with exactly two elements: The method stops i
 
    Symbolic execution tree for the list scanning program (only well-formed lists).
 
-This example shows that excluding irrelevant inputs from the symbolic analysis of a piece of code is of paramount importance, both to make the analysis feasible within the typically limited computational resources available (time, memory), and to exclude spurious analysis results and unfeasible tests from its output. JBSE implements a number of techniques that empower its users by allowing them to specify rich classes of assumptions on the shape of the input heap objects. We will analyze them in details in the later chapters of this manual.
+This example shows that excluding irrelevant inputs from the symbolic analysis of a piece of code is of paramount importance, both to make the analysis feasible within the typically limited computational resources available (time, memory), and to exclude spurious analysis results and unfeasible tests from its output. JBSE implements a number of techniques that empower its users by allowing them to specify rich classes of assumptions on the shape of the input heap objects. We will discuss them in details in the later chapters of this manual.
 
 .. _Java Virtual Machine Specification (JVMS) books: https://docs.oracle.com/javase/specs/
 .. _Hotspot: http://www.oracle.com/technetwork/java/javase/downloads/index.html
