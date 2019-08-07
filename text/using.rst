@@ -14,11 +14,11 @@ The ``jbse.jvm.Engine`` class offers a very low-level API, that allows a fine-gr
 
 The ``jbse.apps.run.Run`` class is an example of an application that can be created by customizing the behavior of a ``Runner`` object. As discussed in the introduction, this class symbolically executes a method and emits information about the execution as, e.g., the traversed states, their path conditions, the shape of the symbolic execution tree, the assertion violations, etc.
 
-******************
-Analyzing the code
-******************
+**************************
+Assertions and assumptions
+**************************
 
-An area where JBSE stands apart from all the other symbolic executors is its support to specifying custom *assumptions* on the symbolic inputs. Assumptions are indispensable to express preconditions over the input parameters of a method, invariants of data structures, and in general to constrain the range of the possible values of the symbolic inputs, either to exclude meaningless values, or just to reduce the scope of the analysis. Let us reconsider our running example and suppose that the method ``m`` has a precondition stating that it cannot be invoked with a value for ``x`` that is less than zero. Stating that a method has a precondition usually implies that we are not interested in analyzing how the method behaves when we pass to it parameters that violate its precondition. In other words, we want to *assume* that the inputs always satisfy the precondition, and analyze the behaviour of ``m`` under this assumption. The easiest way to introduce an assumption on the possible values of the ``x`` input is by injecting at the entry point of ``m`` a call to the ``jbse.meta.Analysis.assume`` method as follows:
+An area where JBSE stands apart from all the other symbolic executors is its support to specifying custom *assumptions* on the symbolic inputs. Assumptions are indispensable to express preconditions over the input parameters of a method, invariants of data structures, and in general to constrain the range of the possible values of the symbolic inputs, either to exclude meaningless values, or just to reduce the scope of the analysis. Let us reconsider our running example and suppose that the method ``m`` has a precondition stating that it cannot be invoked with a value for ``x`` that is less than zero. Stating that a method has a precondition usually implies that we are not interested in analyzing how the method behaves when its inputs violate the precondition. In other words, we want to *assume* that the inputs always satisfy the precondition, and analyze the behaviour of ``m`` under this assumption. The easiest way to introduce an assumption on the possible values of the ``x`` input is by injecting at the entry point of ``m`` a call to the ``jbse.meta.Analysis.assume`` method as follows:
 
 .. code-block:: java
 
