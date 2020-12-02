@@ -50,7 +50,7 @@ Symbolic execution is a program analysis technique that is based on performing t
        }
    }
 
-This program is the typical "double-if" example that is customarily used to illustrate how symbolic execution works. It is a sequence of two ``if`` statement with same condition, where the variables involved in the condition are not modified through the program. This ensures that every execution of the program will execute either both the ``then`` branches or both the ``else`` branches, never a ``then``  branch and an ``else`` branch. The final assertion requires for the program to be correct that the variables ``a`` and ``b`` have same final value, a fact that trivially holds for all the possible executions. Let us test the method ``m`` with input, say, ``x == 3``:
+This program is the customary "double-if" example that is often used to illustrate how symbolic execution works. It is a sequence of two ``if`` statement with same condition, where the variables involved in the condition are not modified through the program. This ensures that every execution of the program will execute either both the ``then`` branches or both the ``else`` branches, never a ``then``  branch and an ``else`` branch. The final assertion requires for the program to be correct that the variables ``a`` and ``b`` have same final value, a fact that trivially holds for all the possible executions. Let us test the method ``m`` with input, say, ``x == 3``:
 
 * The JVM first evaluates the branch condition ``x > 0`` of the first ``if`` statement. Being ``x == 3`` this yields ``(3 > 0) == true``: Thus the ``then`` branch of the first ``if`` statement is selected for execution and ``a`` is set to ``true``. Then the execution continues with the second ``if`` statement.
 * The JVM evaluates the branch condition of the second ``if`` statement, that is again ``x > 0``. Since the value of ``x`` is still ``3``, the ``then`` branch of the second ``if`` statement is selected for execution and ``b`` is set to true. Then the execution continues with the ``assert`` statement.
@@ -79,7 +79,7 @@ If a program is deterministic, i.e., it does always the same things when fed by 
 
 .. figure:: /img/doubleif_symbolic_tree.*
    :align: center
-   :scale: 40
+   :width: 250 px
 
    Symbolic execution tree for the "double-if" program.
 
@@ -89,7 +89,7 @@ If a program is deterministic, i.e., it does always the same things when fed by 
 
 .. figure:: /img/doubleif_symbolic_tree_static.*
    :align: center
-   :scale: 50
+   :width: 600 px
 
    Static symbolic execution tree for the "double-if" program.
 
@@ -99,7 +99,7 @@ In :num:`Figure #doubleif-symbolic-tree-path` the path marked with the red dashe
 
 .. figure:: /img/doubleif_symbolic_tree_path.*
    :align: center
-   :scale: 50
+   :width: 600 px
 
    A path in the "double-if" program and its path condition.
 
@@ -122,7 +122,7 @@ The "double-if" program has a finite symbolic execution tree, but this is not th
 
 .. figure:: /img/loop_symbolic_tree.*
    :align: center
-   :scale: 40
+   :width: 400 px
 
    Static symbolic execution tree for the loop program.
 
@@ -132,7 +132,7 @@ Its static symbolic execution tree, reported in :num:`Figure #loop-symbolic-tree
 
 .. figure:: /img/loop_symbolic_tree_path.*
    :align: center
-   :scale: 40
+   :width: 400 px
 
    Infinite path in the static symbolic execution tree for the loop program.
 
@@ -238,7 +238,7 @@ Case 2.2.3.1 is the case of a list with exactly two elements: The method stops i
 
 .. figure:: /img/scanlist_symbolic_tree.*
    :align: center
-   :scale: 70
+   :width: 700 px
 
    Symbolic execution tree for the list scanning program.
 
@@ -248,7 +248,7 @@ Case 2.2.3.1 is the case of a list with exactly two elements: The method stops i
 
 .. figure:: /img/scanlist_symbolic_tree_wellformed.*
    :align: center
-   :scale: 70
+   :width: 700 px
 
    Symbolic execution tree for the list scanning program (only well-formed lists).
 
@@ -257,12 +257,12 @@ This example shows that excluding irrelevant inputs from the symbolic analysis o
 .. _Java Virtual Machine Specification (JVMS) books: https://docs.oracle.com/javase/specs/
 .. _Hotspot: http://www.oracle.com/technetwork/java/javase/downloads/index.html
 .. _OpenJ9: http://www.eclipse.org/openj9/
-.. _JamaicaVM: https://www.aicas.com/cms/en/JamaicaVM
+.. _JamaicaVM: https://www.aicas.com/wp/products-services/jamaicavm/
 .. _Findbugs: http://findbugs.sourceforge.net/
 .. _Checkstyle: http://checkstyle.sourceforge.net/
 .. _PMD: http://pmd.sourceforge.net/
 .. _as observed by Dijkstra: https://www.cs.utexas.edu/users/EWD/ewd02xx/EWD249.PDF
-.. _Symbolic PathFinder: http://babelfish.arc.nasa.gov/trac/jpf/wiki/projects/jpf-symbc
+.. _Symbolic PathFinder: https://github.com/SymbolicPathFinder
 .. _Sireum/Kiasan: http://www.sireum.org/
 .. _JNuke: http://fmv.jku.at/jnuke/
 .. _Wikipedia article: http://en.wikipedia.org/wiki/Symbolic_execution

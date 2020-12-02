@@ -15,6 +15,7 @@ _build
 *.mobi
 *.pdf
 !img/*.pdf
+.DS_Store
 
 # temporary files
 *~
