@@ -8,16 +8,18 @@
 node_modules
 
 # Book build output
-_build
+_build/*
 
 # Static
-_static
+_static/*
 
 # eBook build output
 *.epub
 *.mobi
 *.pdf
 !img/*.pdf
+
+# DS_Store
 .DS_Store
 
 # temporary files
