@@ -42,8 +42,7 @@ highlight_language = u'java'
 # ones.
 extensions = [
     'sphinx.ext.mathjax',
-    'sphinx.ext.githubpages',
-    'numfig'
+    'sphinx.ext.githubpages'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -186,3 +185,5 @@ epub_exclude_files = ['search.html']
 
 
 # -- Extension configuration -------------------------------------------------
+numfig = True
+numfig_format = { 'figure': 'Figure %s', 'table': 'Table %s', 'code-block': 'Listing %s', 'section': 'Section'}
