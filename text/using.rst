@@ -58,7 +58,7 @@ To specify which method the ``Engine`` must symbolically execute, invoke ``Engin
 Setting the calculator
 ======================
 
-An ``Engine`` needs to be able to create, from time to time, new symbolic expression. When this happens, some basic manipulations are usually performed on the created symbolic expression at the purpose of simplifying it. For example, it is possible to configure an ``Engine`` so it, whenever it must add the symbol ``a`` to the number ``0``, simplifies the resulting expression ``a + 0`` to ``a``. To this end, an ``Engine`` depends on an object extending the abstract class ``jbse.val.Calculator``, that it uses to create and manipulate all the symbolic expressions, and that performs all the simplifications on-the-fly. It is therefore necessary to inject the dependency to a suitable subclass of ``Calculator`` through the method ``setCalculator(Calculator)`` of the classes ``EngineParameters`` and ``RunnerParameters``. Currently, the only concrete subclass of ``Calculator`` is the class ``jbse.rewr.CalculatorRewriting``. A ``CalculatorRewriting`` that applies a set of rewriting rules to simplify all the symbolic expressions it produces. It is possible to plug the rewriting rules, implemented as subclasses of ``jbse.rewr.RewriterCalculatorRewriting``, by invoking the ``CalculatorRewriting.addRewriter(RewriterCalculatorRewriting)`` method. The package ``jbse.rewr`` contains a collection of rewriting rules performing some useful simplifications. The most important ones, that are essentially compulsory, are:
+An ``Engine`` needs to be able to create, from time to time, new symbolic expression. When this happens, some basic manipulations are usually performed on the created symbolic expression at the purpose of simplifying it. For example, it is possible to configure an ``Engine`` so it, whenever it must add the symbol ``a`` to the number ``0``, simplifies the resulting expression ``a + 0`` to ``a``. To this end, an ``Engine`` depends on an object extending the abstract class ``jbse.val.Calculator``, that it uses to create and manipulate all the symbolic expressions, and that performs all the simplifications on-the-fly. It is therefore necessary to inject the dependency to a suitable subclass of ``Calculator`` through the method ``setCalculator(Calculator)`` of the classes ``EngineParameters`` and ``RunnerParameters``. Currently, the only concrete subclass of ``Calculator`` is the class ``jbse.rewr.CalculatorRewriting``. A ``CalculatorRewriting`` applies a set of rewriting rules to simplify all the symbolic expressions it produces. It is possible to plug the rewriting rules, implemented as subclasses of ``jbse.rewr.RewriterCalculatorRewriting``, by invoking the ``CalculatorRewriting.addRewriter(RewriterCalculatorRewriting)`` method. The package ``jbse.rewr`` contains a collection of rewriting rules performing some useful simplifications. The most important ones, that are essentially compulsory, are:
 
 * ``jbse.rewr.RewriterExpressionOrConversionOnSimplex``: necessary to simplify all the expressions whose operands are numeric, e.g., to simplify ``3 + 2`` to ``5``;
 * ``jbse.rewr.RewriterFunctionApplicationOnSimplex``: similar to the previous, where the operator is a (symbolic) function application as ``sin``, ``cos``, ``max``, ``min``...
@@ -128,6 +128,8 @@ These classes typically yield, when combined, a sufficiently powerful and flexib
    ...
    CalculatorRewriting calc = new CalculatorRewriting();
    ...
+   p.setCalculator(calc)
+   
    ArrayList<String> z3CommandLine = new ArrayList<>();
    z3CommandLine.add("/opt/local/bin/z3");
    z3CommandLine.add("-smt2");
@@ -148,7 +150,76 @@ We add some final remarks:
 * The ``DecisionProcedureAlwSat`` constructor accepts as parameter a ``Calculator``. It is good practice (although not strictly necessary) to pass the same calculator object passed to the ``EngineParameters`` or ``RunnerParameters`` object via the  ``setCalculator`` method.
 * A ``DecisionProcedureSMTLIB2_AUFNIRA`` must receive as a constructor parameter the command line that must be used to invoke the SMT solver. This is of course platform- and environment-dependent. In the above example we proposed a possible command line for invoking Z3 in a UNIX-like environment.
 * Differently from other decision procedures, where it is possible to interactively send and retract assertions, the ``DecisionProcedureLICS`` and ``DecisionProcedureClassInit`` objects must be configured at construction time by passing suitable objects (with class ``jbse.rules.LICSRulesRepo`` and ``jbse.rules.ClassInitRulesRepo``, respectively) that gather the assertions about reference resolution and class initialization, respectively. We will discuss these constraints in a later section.
+
+===================
+Building the engine
+===================
+
+Once set an ``EngineParameters`` object, we are ready to create an ``Engine``; It is sufficient to create an ``EngineBuilder`` object and invoke its ``build`` method as follows:
+
+.. code-block:: java
+
+   ...
+   import jbse.jvm.EngineParameters;
+   ...
    
+   EngineParameters p = new EngineParameters();
+   ...
+   EngineBuilder b = new EngineBuilder();
+   Engine e = b.build(p);
+
+====================
+Setting the listener
+====================
+
+The procedure for creating a ``Runner`` is mostly identical to the one for creating an ``Engine``, with the obvious difference that the involved classes are ``RunnerParameters`` and ``RunnerBuilder`` (the name of the methods are identical). The true distinguishing feature is that a ``RunnerParameters`` object allows to register a listener for the symbolic execution process: Differently from an ``Engine``, that must be stepped bytecode-by-bytecode, a ``Runner`` fully executes a method symbolically without interruption. To allow a degree of observability and controllability of a ``Runner``'s symbolic execution, this notifies a listener object extending the ``jbse.jvm.Runner.Actions`` class at appropriate moments---before a bytecode step, after a bytecode step, at the entry of a method... An application may thus monitor an execution by defining a suitable listener object and registering it by invoking the ``setActions(Runner.Actions)`` method of the ``RunnerParameters`` object:
+
+.. code-block:: java
+
+ 
+   ...
+   import jbse.jvm.Runner;
+   import jbse.jvm.Runner.Actions;
+   import jbse.jvm.RunnerBuilder;
+   import jbse.jvm.RunnerParameters;
+   ...
+   
+   RunnerParameters p = new RunnerParameters();
+   ...
+   Actions a = new Runner.Actions() {
+     @Override
+     public boolean atStart() {
+       ...
+     }
+
+     @Override
+     public boolean atStepPre() {
+       ...
+     }
+
+     ...
+   }
+   p.setActions(a);
+
+   RunnerBuilder b = new RunnerBuilder();
+   Runner r = b.build(p);
+
+For maximum observability and controllability of the symbolic execution process it is possible at any time to extract the ``Engine`` object underlying a ``Runner``.
+
+*************************
+Using a symbolic executor
+*************************
+
+The symbolic execution process performed by JBSE is simple and complex at the same time. On one hand the gist of the process is easy to grasp:
+
+* Execute the next bytecode;
+* If you are at a branch in the symbolic execution tree select a way to go (otherwise, follow the only way to go);
+* Repeat.
+
+When there are no more bytecodes to execute (i.e., the state of symbolic execution is *stuck*) it is possible to *backtrack* to one of the previously visited branching points in the symbolic execution tree and follow an unvisited direction, until all the paths of the symbolic execution tree are covered, or some budget is exhausted, whatever comes first.
+
+On the other hand, JBSE aims at being as conformant as possible to the JVM Specification v.8, and as behaviorally similar as possible to its Hotspot implementation. This means, for instance, that JBSE follows quite closely the Hotspot bootstrap process and loads and initializes the same large set of core classes, in the same order. as Hotspot. The consequence of such a degree of compliance is that JBSE must manage complex and large application states, even before it starts executing the user's code.
+  
 .. _binary name: https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.2.1
 .. _descriptor: https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.3.3
 .. _Table 4.3-A: https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.3.2-200
