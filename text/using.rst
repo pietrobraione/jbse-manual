@@ -175,7 +175,6 @@ Setting the listener
 The procedure for creating a ``Runner`` is mostly identical to the one for creating an ``Engine``, with the obvious difference that the involved classes are ``RunnerParameters`` and ``RunnerBuilder`` (the name of the methods are identical). The true distinguishing feature is that a ``RunnerParameters`` object allows to register a listener for the symbolic execution process: Differently from an ``Engine``, that must be stepped bytecode-by-bytecode, a ``Runner`` fully executes a method symbolically without interruption. To allow a degree of observability and controllability of a ``Runner``'s symbolic execution, this notifies a listener object extending the ``jbse.jvm.Runner.Actions`` class at appropriate moments---before a bytecode step, after a bytecode step, at the entry of a method... An application may thus monitor an execution by defining a suitable listener object and registering it by invoking the ``setActions(Runner.Actions)`` method of the ``RunnerParameters`` object:
 
 .. code-block:: java
-
  
    ...
    import jbse.jvm.Runner;
@@ -206,9 +205,9 @@ The procedure for creating a ``Runner`` is mostly identical to the one for creat
 
 For maximum observability and controllability of the symbolic execution process it is possible at any time to extract the ``Engine`` object underlying a ``Runner``.
 
-*************************
-Using a symbolic executor
-*************************
+***************************
+Using the symbolic executor
+***************************
 
 The symbolic execution process performed by JBSE is simple and complex at the same time. On one hand the gist of the process is easy to grasp:
 
@@ -218,8 +217,50 @@ The symbolic execution process performed by JBSE is simple and complex at the sa
 
 When there are no more bytecodes to execute (i.e., the state of symbolic execution is *stuck*) it is possible to *backtrack* to one of the previously visited branching points in the symbolic execution tree and follow an unvisited direction, until all the paths of the symbolic execution tree are covered, or some budget is exhausted, whatever comes first.
 
-On the other hand, JBSE aims at being as conformant as possible to the JVM Specification v.8, and as behaviorally similar as possible to its Hotspot implementation. This means, for instance, that JBSE follows quite closely the Hotspot bootstrap process and loads and initializes the same large set of core classes, in the same order. as Hotspot. The consequence of such a degree of compliance is that JBSE must manage complex and large application states, even before it starts executing the user's code.
-  
+On the other hand, JBSE aims at being as conformant as possible to the Java Virtual Machine Specification v.8, and as behaviorally similar as possible to its Hotspot implementation. This means, for instance, that JBSE follows quite closely the Hotspot bootstrap process and loads and initializes the same large set of core classes, in the same order as Hotspot. The consequence of such a degree of compliance is that JBSE must manage complex and large application states, even before it starts executing the user's code. Symbolic execution of a method is performed in phases: the *pre-initial* phase bootstraps the execution by loading and initializing the core classes, then an initial state is created where the frame of the target method is pushed on the stack of the state emerging from the pre-initial phase, and finally during the *post-initial* phase the target method is actually executed.
+
+The ``Engine`` class exposes a low-level interface to symbolic execution. After its creation, an ``Engine`` must be initialized by invoking its ``init()`` method, and after that it can be stepped by repeatedly invoking its ``step()`` method as long as a successor state exists, a thing that can be checked by invoking the ``canStep()`` method. This happens until the execution state gets stuck, or you decide to prematurely end the exploration of the current execution path by invoking the ``stopCurrentPath()`` method. 
+
+.. code-block:: java
+
+   import jbse.jvm.Engine;
+
+   Engine e;
+   ...
+   e.init();
+   while (e.canStep()) {
+     e.step();
+
+     ...
+     //possibly:
+     e.stopCurrentPath();
+     ...
+   }
+   
+When the ``Engine`` is at a branch point in the symbolic execution tree, it automatically selects one of the successor states as the next one. The ``step()`` method returns a Memento ``jbse.tree.StateTree.BranchPoint`` object, that can be used to detect whether the ``Engine`` is passing through a same branch point again. To backtrack to the next pending branch in the symbolic execution tree invoke the ``backtrack()`` method, not before checking whether such a pending branch exists with the method ``canBacktrack()``.
+
+.. code-block:: java
+
+   import jbse.jvm.Engine;
+
+   Engine e;
+   ...
+   e.init();
+   while (true) {
+     while (e.canStep()) {
+       e.step();
+       ...
+     }
+     if (e.canBacktrack()) {
+       e.backtrack();
+     } else {
+       break;
+     }
+   }
+
+By stepping and backtracking it is possible to perform a depth-first visit of the symbolic execution tree. 
+
+
 .. _binary name: https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.2.1
 .. _descriptor: https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.3.3
 .. _Table 4.3-A: https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.3.2-200
