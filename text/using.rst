@@ -219,9 +219,9 @@ When there are no more bytecodes to execute (i.e., the state of symbolic executi
 
 On the other hand, JBSE aims at being as conformant as possible to the Java Virtual Machine Specification v.8, and as behaviorally similar as possible to its Hotspot implementation. This means, for instance, that JBSE follows quite closely the Hotspot bootstrap process and loads and initializes the same large set of core classes, in the same order as Hotspot. The consequence of such a degree of compliance is that JBSE must manage complex and large application states, even before it starts executing the user's code. Symbolic execution of a method is performed in phases: the *pre-initial* phase bootstraps the execution by loading and initializing the core classes, then an initial state is created where the frame of the target method is pushed on the stack of the state emerging from the pre-initial phase, and finally during the *post-initial* phase the target method is actually executed.
 
-================
-Using the engine
-================
+===========================================
+Using the engine: Stepping and backtracking
+===========================================
 
 The ``Engine`` class exposes a low-level interface to symbolic execution. After its creation, an ``Engine`` must be initialized by invoking its ``init()`` method, and after that it can be stepped by repeatedly invoking its ``step()`` method as long as a successor state exists, a thing that can be checked by invoking the ``canStep()`` method. This happens until the execution state gets stuck, or you decide to prematurely end the exploration of the current execution path by invoking the ``stopCurrentPath()`` method. 
 
@@ -264,11 +264,19 @@ When the ``Engine`` is at a branch point in the symbolic execution tree, it auto
 
 By following this pattern of stepping-plus-backtracking JBSE will perform a depth-first visit of the symbolic execution tree.
 
-================
-Using the runner
-================
+==========================================================
+Using the runner: Running and limiting the execution scope
+==========================================================
 
-The ``Runner`` class offers a higher-level experience to running JBSE. Once configured, it is sufficient to invoke the ``run()`` method, and the ``Runner`` will automatically perform a step-backtrack loop similar to the one presented earlier. By itself this loop will silently traverse the symbolic execution tree and (possibly) terminate: To introduce some interesting behavior it is necessary to implement some ``Actions`` listener object and configure the ``Runner`` with it. At a minimum, the listener can monitor the symbolic execution and report its progress in some way. The ``Runner`` object, however, also offers two ways to control the extent of the execution. First, every method of the ``Actions`` class returns a boolean value, either true, in case you want to early stop the execution, or false, in case you want to continue it. A finer control on the explored region of the state space can be achieved by configuring the *scope* parameters of the ``RunnerParameters`` object. The scope parameters allow you to define bounds above which the exploration of a trace is abandoned. The *heap scope* is the maximum number of objects of a given class that may be present in a state's heap; The *depth scope* is the maximum number of backtrack point that may be present from the start of the execution along a trace; And finally, the *count scope* is the maximum number of steps that may be performed after a backtrack point and before the next one. For example, if the depth scope is 3 we may have a trace up to depth .1.1.1, but not to depth .1.1.1.1, and if the count scope is 100 we may have a trace up to .1[100] but not to ,1[101]. An example of use of a runner is the following:
+The ``Runner`` class offers a higher-level experience to running JBSE. Once configured, it is sufficient to invoke the ``run()`` method, and the ``Runner`` will automatically perform a step-backtrack loop similar to the one presented earlier. By itself this loop will silently traverse the symbolic execution tree and (possibly) terminate: To introduce some interesting behavior it is necessary to implement some ``Actions`` listener object and configure the ``Runner`` with it. At a minimum, the listener can monitor the symbolic execution and report its progress in some way. The ``Runner`` object, however, also offers two ways to control the extent of the execution. First, every method of the ``Actions`` class returns a boolean value, either true, in case you want to early stop the execution, or false, in case you want to continue it. A finer control on the explored region of the state space can be achieved by configuring the *scope* parameters of the ``RunnerParameters`` object. The scope parameters allow you to define bounds above which the exploration of a trace is abandoned, and are these ones:
+
+* The *heap scope* is the maximum number of objects of a given class that may be present in a state's heap;
+* The *depth scope* is the maximum number of backtrack points that may be present from the start of the execution along a trace: For example, if the depth scope is 3 we may have a trace up to depth ``.1.1.1``, but not to depth ``.1.1.1.1``;
+* The *count scope* is the maximum number of steps that may be performed after a backtrack point and before the next one: For example, if the count scope is 100 we may have a trace up to ``.1[100]`` but not to ``.1[101]``;
+* The *stack scope* is the maximum number of frames that may be present in the stack of the method calls, and can be used to limit the use of recursion;
+* Finally, the *loops scope* is the maximum number of backjumps that the execution of a method may perform: It can be used to limit the use of loops.
+
+An example of use of a runner is the following:
 
 .. code-block:: java
  
@@ -288,11 +296,32 @@ The ``Runner`` class offers a higher-level experience to running JBSE. Once conf
    p.setHeapScope(10, "java/util/LinkedList$Node");
    p.setDepthScope(100);
    p.setCountScope(10000);
+   p.setStackScope(30);
+   p.addLoopsScope("java/util/LinkedList", "(Ljava/lang/Object;)Z", "add", 70);
 
    RunnerBuilder b = new RunnerBuilder();
    Runner r = b.build(p);
 
    r.run();
+
+In this example symbolic execution is bound to have no more than 2 ``LinkedList`` objects, 10 ``LinkedList.Node`` objects, 100 backtrack points along a trace, 10000 steps between two different backtrack points, 30 frames on the stack, and may not perform more than 70 backjumps while executing the method ``LinkedList.add(Object)``.
+
+Another way to limit the execution scope is to specify the identifier of a region of the symbolic execution tree. Let us consider, for example, the case where we want to perform symbolic execution limited to the subtree with root ``.1.2.1[0]``. This is possible by setting the following parameter:
+
+.. code-block:: java
+ 
+   ...
+   
+   RunnerParameters p = new RunnerParameters();
+   ...
+   p.setIdentifierSubregion(".1.2.1");
+   
+   RunnerBuilder b = new RunnerBuilder();
+   Runner r = b.build(p);
+
+   r.run();
+
+This way the runner will discard all the paths whose identifier does not start with ``1.2.1``, e.g., it will not analyze the ``1.1...`` paths.
 
 .. _binary name: https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.2.1
 .. _descriptor: https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.3.3

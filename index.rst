@@ -14,6 +14,5 @@ The JBSE manual
    text/introduction.rst
    text/getting.rst
    text/using.rst
-   
-
+   text/lics.rst
 
