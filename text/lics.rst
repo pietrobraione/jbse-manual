@@ -103,15 +103,15 @@ Now let us reconsider the problem of excluding the ill-formed input lists when s
        }
    }
 
-Unfortunately this method, while correct in principle, has many disadvantages. As discussed at the end of :ref:`ssec-getting-assertions`, the symbolic execution of the repOk method accesses all the symbolic references in the object it checks, causing their resolution. The effect is twofold: First, it yields an early explosion of the total number of paths; Second, by resolving possibly more symbolic references than the target method would have done, it *overconstrains* the symbolic input object, hindering the generality of the results.
+Unfortunately this technique, while formally correct, has many practical disadvantages. Since it must completely scan the object it checks to determine its structural correctness, the symbolic execution of a repOk method tendentially accesses all the symbolic references in the input object, causing their resolution. The effect is twofold: First, as discussed at the end of :ref:`ssec-getting-assertions`, it yields an early explosion of the total number of paths; Second, by resolving possibly more symbolic references than the target method would have done, it *overconstrains* the symbolic execution, hindering the generality of the results.
 
 **********
 LICS rules
 **********
 
-The idea motivating LICS rules is that it is possible to control the shape of the initial input object graph by restrain the possible resolutions of the symbolic references present in it during their (lazy) initialization. LICS rules allow to express a surprisingly high number of structural invariants.
+The idea motivating LICS rules is that it is possible to control the shape of the initial input object graph by restraining the possible resolutions of the symbolic references present in it during their (lazy) initialization. This way it is possible to express a surprisingly high variety of structural invariants.
 
-Let's start from the linked list example, and suppose we want to express the assumption that the sequence of list nodes does not contain loops. This can be also be expressed as a constraint on lazy initialization as follows: When a reference with origin ``{ROOT}:list.head``, ``{ROOT}:list.head.next``, ``{ROOT}:list.head.next.next``... must be resolved, it may be resolved by null or by expansion, but not by alias. We can prove it as follows:
+Let's start from the linked list example, and suppose we want to express the assumption that the sequence of list nodes does not contain loops. This can be expressed as a constraint on lazy initialization as follows: When a reference with origin ``{ROOT}:list.head``, ``{ROOT}:list.head.next``, ``{ROOT}:list.head.next.next``... must be resolved, it may be resolved by null or by expansion, but not by alias. We can prove it as follows:
 
 * First, we note that a symbolic reference whose origin is a prefix of another symbolic reference's origin must be resolved before the latter. This implies that ``{ROOT}:list.head`` must be resolved before ``{ROOT}:list.head.next``, which must be resolved before ``{ROOT}:list.head.next.next``, etc.
 * The first reference to be resolved must therefore be ``{ROOT}:list.head``: If we forbid its resolution by alias, then it may be resolved only by null, yielding the empty list, or by expansion, yielding a list with (at least) one fresh node. Being fresh, the node cannot be pointed to by any other symbolic reference.
@@ -144,7 +144,7 @@ or by using the following unified rule::
 
    {R_ANY}.head(.next)* aliases nothing
 
-where ``{R_ANY}`` matches any origin string. This way it is possible to express the constraint that any two distinct lists may not share nodes, a constraint that cannot be expressed by repOk methods.
+where ``{R_ANY}`` matches any origin string. This way it is possible to express the constraint that any two distinct lists may not share nodes, a kind of constraint that cannot be expressed by a repOk method.
 
 Now let's consider another variation of the example. This time we add to ``LinkedList.Node``\ s a field ``prev``, that must point to the previous node in the list, or to ``null`` if no previous node exists. This constraint can be expressed as follows::
 
@@ -152,7 +152,7 @@ Now let's consider another variation of the example. This time we add to ``Linke
    {R_ANY}.head.prev aliases nothing
    {R_ANY}.head(.next)+.prev not null
    {R_ANY}.head(.next)+.prev expands to nothing
-   {R_ANY}.head(.next)+.prev aliases {$REF}.{UP}.{UP}
+   {R_ANY}.head(.next)+.prev aliases target {$REF}.{UP}.{UP}
 
 These LICS rules have the following meaning:
 
@@ -166,6 +166,33 @@ These LICS rules have the following meaning:
    ...
 
 (Note that, being ``{$REF}.{UP}.{UP}`` a prefix of ``{$REF}``, the corresponding symbolic reference must have been resolved before the symbolic reference with origin ``{$REF}``, given that ``{$REF}`` has at least two fields.)
+
+Finally, the following LICS rule expresses the fact that ``{ROOT}:list`` can be expanded to a concrete ``LinkedList`` object::
+
+   {ROOT}:list expands to instanceof esecfse2013/LinkedList
+
+*************************
+More on the LICS language
+*************************
+In the previous subsection we introduced the basics of the LICS language. Now we will discuss more in details other aspects of the LICS syntax. The list of all the possible LICS rules is the following::
+
+   <pattern> not null
+   <pattern> expands to nothing
+   <pattern> expands to instanceof <class>
+   <pattern> aliases nothing
+   <pattern> aliases instanceof <class>
+   <pattern> aliases target <pattern2>
+   <pattern> never aliases target <pattern2>
+
+In the previous subsection we introduced all the rules except for ``<pattern> aliases instanceof <class>`` and ``<pattern> never aliases target <pattern>``: The former expresses the constraint that, whenever a symbolic reference whose origin matches ``<pattern>`` is resolved by alias, it must point to an object with class ``<class>``. The latter is a negative version of the ``aliases target`` rule, requiring that, whenever a symbolic reference whose origin matches ``<pattern>`` is resolved by alias, it must not point to an object whose origin matches ``<pattern2>``.
+
+Another important aspect is the syntax of patterns, that slightly differs from that of standard regular expressions. Since the dot (.) character is used to indicate the fields separator, ``{°}`` is used as the pattern matching an arbitrary character. For instance, the pattern that matches any string is ``{°}*``. Similarly, since the dollar ($) character must be used as separator to indicate the class name of nested classes, ``{EOL}`` is used to indicate the end-of-line character. A special pattern syntax can be used in the ``aliases target`` and ``never aliases target`` rules only for the patterns appearing on the right of the ``target`` keyword, i.e., the patterns indicated as ``<pattern2>`` above. These patterns may contain the keyword ``{$REF}``, that as we have seen matches the origin of the reference to resolve, or the keyword ``{$R_ANY}``, that matches the corresponding ``{R_ANY}`` if this is contained in the pattern on the left of the ``aliases`` keyword. Finally, it is possible to prepend the keyword ``{MAX}`` to the pattern on the right of the ``target`` keyword, obtaining a *max-pattern*. A max-pattern ``{MAX}p`` matches the (only) symbolic reference whose origin matches ``p`` and that has the *longest* origin string among all the symbolic references whose origin matches ``p``. A max-pattern is used to indicate the deepest object among a set of objects situated on a given path in the heap. Let us consider the case of a doubly, circular linked list data structure. The rule::
+
+   {R_ANY}.head(.next)* aliases target {MAX}{$R_ANY}.head(.prev)*
+
+expresses the fact that, if we resolve by alias a symbolic reference with origin ``{R_ANY}.head.next.next...next`` (the "rightmost" node) , this must point to the deepest object pointed by the symbolic reference with origin ``{R_ANY}.head.prev.prev...prev`` (the "leftmost" node), therefore correctly closing the circular structure of nodes.
+
+
 
 .. [1] Note that JBSE does not determine automatically the list of the concrete types implementing an abstract type (i.e., it does not perform class hierarchy analysis). Therefore, without instructing JBSE about the existence of ``LinkedList`` as a possible concrete subtype of ``List``, JBSE would be unable to resolve ``{ROOT}:list`` by expansion.
 
