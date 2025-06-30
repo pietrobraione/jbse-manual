@@ -120,11 +120,11 @@ Let's start from the linked list example, and suppose we want to express the ass
 
 The previous constraint can be expressed by the following LICS rule::
 
-   {ROOT}:list.head(.next)* aliases nothing
+   {ROOT}:list.head(.next)* instanceof esecfse2013/LinkedList$Node aliases nothing
 
 meaning that all the symbolic references whose origins match the regular expression ``{ROOT}:list.head(.next)*`` cannot be resolved by alias.
 
-A comment is necessary. The rule ``<pattern> aliases nothing`` does *not* necessarily mean that a symbolic reference whose origin matches ``<pattern>`` does not share the object it points to with other symbolic references. Let's consider a slight variation of the ``Target`` class:
+A comment is necessary: A rule with shape ``<pattern> ... aliases nothing`` does *not* necessarily mean that a symbolic reference whose origin matches ``<pattern>`` does not share the object it points to with other symbolic references. Let's consider a slight variation of the ``Target`` class:
 
 .. code-block:: java
 
@@ -136,23 +136,23 @@ A comment is necessary. The rule ``<pattern> aliases nothing`` does *not* necess
        }
    }
 
-In this case the LICS rule ``{ROOT}:list.head(.next)* aliases nothing`` does not constrain, e.g., the symbolic reference with origin ``{ROOT}:this.otherList.head``, that can be freely resolved by alias and point, e.g. to ``{ROOT}:list.head.next``. If we want to rule out the possibility that ``list`` and ``otherList`` share a node, we need to constrain also the origins matching the regular expression ``{ROOT}:this.otherList.head(.next)*``, either by adding another LICS rule::
+In this case the previously introduced LICS rule ``{ROOT}:list.head(.next)* ... aliases nothing`` does not constrain, e.g., the symbolic reference with origin ``{ROOT}:this.otherList.head``, that can be freely resolved by alias and point, e.g. to ``{ROOT}:list.head.next``. If we want to rule out the possibility that ``list`` and ``otherList`` share a node, we need to constrain also the origins matching the regular expression ``{ROOT}:this.otherList.head(.next)*``, either by adding another LICS rule::
 
-   {ROOT}:this.otherList.head(.next)* aliases nothing
+   {ROOT}:this.otherList.head(.next)* instanceof esecfse2013/LinkedList$Node aliases nothing
 
 or by using the following unified rule::
 
-   {R_ANY}.head(.next)* aliases nothing
+   {R_ANY}.head(.next)* instanceof esecfse2013/LinkedList$Node aliases nothing
 
 where ``{R_ANY}`` matches any origin string. This way it is possible to express the constraint that any two distinct lists may not share nodes, a kind of constraint that cannot be expressed by a repOk method.
 
-Now let's consider another variation of the example. This time we add to ``LinkedList.Node``\ s a field ``prev``, that must point to the previous node in the list, or to ``null`` if no previous node exists. This constraint can be expressed as follows::
+Now let's consider another variation of the example. This time we add to ``LinkedList.Node``\ s a field ``prev``, that must point to the previous node in the list, or to ``null`` if no previous node exists. This constraint can be expressed as follows[3]_::
 
-   {R_ANY}.head.prev expands to nothing
-   {R_ANY}.head.prev aliases nothing
-   {R_ANY}.head(.next)+.prev not null
-   {R_ANY}.head(.next)+.prev expands to nothing
-   {R_ANY}.head(.next)+.prev aliases target {$REF}.{UP}.{UP}
+   {R_ANY}.head.prev ... expands to nothing
+   {R_ANY}.head.prev ... aliases nothing
+   {R_ANY}.head(.next)+.prev ... not null
+   {R_ANY}.head(.next)+.prev ... expands to nothing
+   {R_ANY}.head(.next)+.prev ... aliases target {$REF}.{UP}.{UP}
 
 These LICS rules have the following meaning:
 
@@ -169,31 +169,138 @@ These LICS rules have the following meaning:
 
 Finally, the following LICS rule expresses the fact that ``{ROOT}:list`` can be expanded to a concrete ``LinkedList`` object::
 
-   {ROOT}:list expands to instanceof esecfse2013/LinkedList
+   {ROOT}:list instanceof List expands to instanceof esecfse2013/LinkedList
+
+A more generic rule, imposing that all the symbolic references with type ``List`` can be expanded to ``LinkedList``::
+
+   {R_ANY} instanceof List expands to instanceof esecfse2013/LinkedList
+
+Note that an initial standalone ``{R_ANY}`` pattern can be omitted::
+
+   instanceof List expands to instanceof esecfse2013/LinkedList
 
 *************************
 More on the LICS language
 *************************
 In the previous subsection we introduced the basics of the LICS language. Now we will discuss more in details other aspects of the LICS syntax. The list of all the possible LICS rules is the following::
 
-   <pattern> not null
-   <pattern> expands to nothing
-   <pattern> expands to instanceof <class>
-   <pattern> aliases nothing
-   <pattern> aliases instanceof <class>
-   <pattern> aliases target <pattern2>
-   <pattern> never aliases target <pattern2>
+   <pattern> ... not null
+   <pattern> ... expands to nothing
+   <pattern> ... expands to instanceof <class>
+   <pattern> ... aliases nothing
+   <pattern> ... aliases instanceof <class>
+   <pattern> ... aliases target <pattern2>
+   <pattern> ... never aliases target <pattern2>
 
-In the previous subsection we introduced all the rules except for ``<pattern> aliases instanceof <class>`` and ``<pattern> never aliases target <pattern>``: The former expresses the constraint that, whenever a symbolic reference whose origin matches ``<pattern>`` is resolved by alias, it must point to an object with class ``<class>``. The latter is a negative version of the ``aliases target`` rule, requiring that, whenever a symbolic reference whose origin matches ``<pattern>`` is resolved by alias, it must not point to an object whose origin matches ``<pattern2>``.
+In the previous subsection we introduced all the rules except for ``<pattern> ... aliases instanceof <class>`` and ``<pattern> ... never aliases target <pattern>``: The former expresses the constraint that, whenever a symbolic reference whose origin matches ``<pattern>`` is resolved by alias, it must point to an object with class ``<class>``. The latter is a negative version of the ``aliases target`` rule, requiring that, whenever a symbolic reference whose origin matches ``<pattern>`` is resolved by alias, it must not point to an object whose origin matches ``<pattern2>``.
 
 Another important aspect is the syntax of patterns, that slightly differs from that of standard regular expressions. Since the dot (.) character is used to indicate the fields separator, ``{°}`` is used as the pattern matching an arbitrary character. For instance, the pattern that matches any string is ``{°}*``. Similarly, since the dollar ($) character must be used as separator to indicate the class name of nested classes, ``{EOL}`` is used to indicate the end-of-line character. A special pattern syntax can be used in the ``aliases target`` and ``never aliases target`` rules only for the patterns appearing on the right of the ``target`` keyword, i.e., the patterns indicated as ``<pattern2>`` above. These patterns may contain the keyword ``{$REF}``, that as we have seen matches the origin of the reference to resolve, or the keyword ``{$R_ANY}``, that matches the corresponding ``{R_ANY}`` if this is contained in the pattern on the left of the ``aliases`` keyword. Finally, it is possible to prepend the keyword ``{MAX}`` to the pattern on the right of the ``target`` keyword, obtaining a *max-pattern*. A max-pattern ``{MAX}p`` matches the (only) symbolic reference whose origin matches ``p`` and that has the *longest* origin string among all the symbolic references whose origin matches ``p``. A max-pattern is used to indicate the deepest object among a set of objects situated on a given path in the heap. Let us consider the case of a doubly, circular linked list data structure. The rule::
 
-   {R_ANY}.head(.next)* aliases target {MAX}{$R_ANY}.head(.prev)*
+   {R_ANY}.head(.next)* instanceof esecfse2013/LinkedList$Node aliases target {MAX}{$R_ANY}.head(.prev)*
 
 expresses the fact that, if we resolve by alias a symbolic reference with origin ``{R_ANY}.head.next.next...next`` (the "rightmost" node) , this must point to the deepest object pointed by the symbolic reference with origin ``{R_ANY}.head.prev.prev...prev`` (the "leftmost" node), therefore correctly closing the circular structure of nodes.
 
+********
+Triggers
+********
+Triggers are methods that are executed by JBSE upon a resolution event, and that can be used to enforce invariants as more assumptions on the shape of the input data structures are added. Let us consider again the linked list example, and let us assume that the ``LinkedList`` class has a ``length`` field:
 
+
+.. code-block:: java
+
+   ...
+   public class LinkedList<I> {
+       private Node head;
+       private int length;
+       ...
+   }
+
+Now the representation invariant of the list requires the value of the ``length`` field to be equal to the number of nodes in the list. How do we express this invariant?
+
+Initially, when we assume that a symbolic reference with type ``LinkedList`` points to a fresh object, we do not do any assumption on the number of nodes the fresh list may contain. As a consequence, the only initial assumption we can do on ``length`` is that it is greater or equal to zero. We can inject this assumption by means of a suitable trigger that fires whenever a symbolic reference is resolved by expansion to a ``LinkedList`` object as follows:
+
+.. code-block:: java
+
+   ...
+   public class LinkedList<I> {
+       private Node head;
+       private int length;
+
+       private static void onLinkedListExpands(LinkedList<I> _this) {
+           assume(_this.length >= 0);
+       }
+       ...
+   }
+
+A trigger method can be declared anywhere, but since in this case we want the trigger to be able to access the private field ``length``, we must declare it as a member of the ``LinkedList`` class. Now we need to hook the trigger to the right resolution event, i.e., to the resolution by expansion of a symbolic reference, whenever this expansion points to a fresh ``LinkedList``. To this end, we need to add the following "triggers" rule::
+
+   instanceof List expands to instanceof esecfse2013/LinkedList triggers esecfse2013/LinkedList:(Lesecfse2013/LinkedList;)V:onLinkedListExpands:{$REF}
+
+This rule expresses the constraint that, whenever a symbolic reference with abstract type ``List`` is expanded to a ``LinkedList``, the method with signature ``esecfse2013/LinkedList:(Lesecfse2013/LinkedList;)V:onLinkedListExpands`` must be symbolically executed before continuing with the symbolic execution of the target code.
+
+Trigger methods typically have one parameter, and most of the times this parameter should be assigned the reference that is resolved. A "triggers" rule definition actually is more flexible by allowing any type-compatible reference to be passed as a parameter to the trigger. The actual value of the parameter must be defined by means of a pattern that must be put after the signature of the method. In this case, being ``{$REF}`` such pattern, the trigger's parameter (``_this``) will be assigned the reference that has been expanded.
+
+The trigger we have introduced captures the invariant on the ``length`` field only partially. We can do better by adding more triggers:
+
+* Whenever we assume that a ``LinkedList`` has one more node, we can refine the invariant on ``length`` by assuming that ``length`` is greater or equal than the total number of assumed nodes;
+* Whenever we assume that the last node of a ``LinkedList`` has no more successors, we can assume that ``length`` is exactly equal to the total number of assumed nodes.
+
+To implement these trigger it is necessary to introduce three *ghost fields*:
+
+* The ghost field ``LinkedList._minLength`` counts how many nodes have been assumed to be present in each symbolic ``LinkedList``;
+* The ghost field ``LinkedList._initialLength`` preserves the initial value of ``length``, on which all the assumptions must be done (note that the field ``length``, as symbolic execution progresses, may be reassigned from its initial value);
+* Finally, the ghost field ``LinkedList$Node._owner`` will be assigned, by means of LICS rule, to the ``LinkedList`` that contains that node. This ghost field is necessary to allow some of the triggers to access the other ghost fields.
+
+
+.. code-block:: java
+
+   ...
+   public class LinkedList<I> {
+       private Node head;
+       private int length;
+       private int _initialLength;
+       private int _minLength;
+
+       private static void onLinkedListExpands(LinkedList<I> _this) {
+           _this.initialLength = _this.length;
+	   _this.minLength = 0;
+           assume(_this.initialLength >= _this.minLength);
+       }
+
+
+       private static class Node {
+           private I value;
+           private Node next;
+	   private LinkedList _owner;
+	   
+           private static void onNodeExpands(Node<I> _this) {
+	       _this._owner._minLength++;
+	       assume(_this._owner._initialLength >= _this._owner._minLength);
+           }
+	   
+           private static void onNodeNull(Node<I> _this) {
+	       assume(_this._owner._initialLength == _this._owner._minLength);
+           }
+       }
+       ...
+   }
+
+The additional rules to make everything work are the following ones::
+
+   {R_ANY}(.next)*._owner instanceof esecfse2013/LinkedList$Node not null
+   {R_ANY}(.next)*._owner instanceof esecfse2013/LinkedList$Node expands to nothing
+   {R_ANY}(.next)*._owner instanceof esecfse2013/LinkedList$Node aliases target {$R_ANY}
+   instanceof esecfse2013/LinkedList$Node expands to instanceof esecfse2013/LinkedList$Node triggers esecfse2013/LinkedList$Node:(Lesecfse2013/LinkedList$Node;)V:onNodeExpands:{$REF}
+   instanceof esecfse2013/LinkedList$Node null triggers esecfse2013/LinkedList$Node:(Lesecfse2013/LinkedList$Node;)V:onNodeNull:{$REF}.{UP}
+
+Some comments:
+
+* The first three rules are necessary to make the ghost field ``LinkedList$Node.owner`` always point to the owner list;
+* The last two rules hook the triggers to their respective events: More precisely, the fourth rule specifies that, whenever a symbolic reference whose type is a ``LinkedList$Node`` is expanded, the ``onNodeExpands`` method is triggered. Similarly for the fifth rule.
+* Note that, in the fifth rule, the parameter is ``{$REF}.{UP}``: This because ``{$REF}`` is the symbolic reference resolved to null, that does not point to any node.
 
 .. [1] Note that JBSE does not determine automatically the list of the concrete types implementing an abstract type (i.e., it does not perform class hierarchy analysis). Therefore, without instructing JBSE about the existence of ``LinkedList`` as a possible concrete subtype of ``List``, JBSE would be unable to resolve ``{ROOT}:list`` by expansion.
 
 .. [2] If the class is mutable, the representation invariant can be temporarily violated *while* a mutator method is changing the state of an instance. But it is required that at the end of the execution the mutator method leaves the object in a state where the invariant holds true, and that all the intermediate states traversed by the object while the mutator executes are externally invisible.
+
+.. [3] For the sake of readability we omitted the ``instanceof esecfse2013/LinkedList$Node`` part of the rules.
